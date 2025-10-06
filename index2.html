@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Reading Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Theme Classes */
+        .theme-default {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+
+        .theme-dark {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        .theme-contrast {
+            background: #000;
+            color: #ffff00;
+        }
+
+        .theme-dyslexia {
+            background: #fffef2;
+            color: #333;
+            font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .theme-dark .container,
+        .theme-contrast .container {
+            background: rgba(40, 40, 40, 0.95);
+        }
+
+        .theme-dyslexia .container {
+            background: #fffef2;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .theme-dark h1,
+        .theme-contrast h1 {
+            background: linear-gradient(45deg, #00f260, #0575e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tagline {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            font-size: 1.1em;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        select, input, button {
+            padding: 10px 15px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+        }
+
+        .theme-dark select,
+        .theme-dark input,
+        .theme-dark button {
+            background: rgba(60, 60, 60, 0.9);
+            color: #e0e0e0;
+        }
+
+        select:hover, input:hover, button:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        select:focus, input:focus, button:focus {
+            outline: 3px solid #667eea;
+            outline-offset: 2px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn.stop {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+        }
+
+        .btn.active {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 1.1em;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .theme-dark textarea {
+            background: rgba(60, 60, 60, 0.95);
+            color: #e0e0e0;
+            border-color: #444;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .reading-guide {
+            position: fixed;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: rgba(255, 255, 0, 0.3);
+            pointer-events: none;
+            display: none;
+            transition: top 0.1s ease;
+            z-index: 1000;
+        }
+
+        .reading-guide.active {
+            display: block;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: scale(1.05);
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .theme-dark .stat-value {
+            color: #00f260;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9em;
+            max-width: 250px;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .focus-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .focus-mode.active {
+            display: flex;
+        }
+
+        .focus-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            font-size: 1.3em;
+            line-height: 1.8;
+        }
+
+        .highlight {
+            background: yellow;
+            padding: 2px 4px;
+            border-radius: 3px;
+            animation: highlightPulse 1s ease;
+        }
+
+        @keyframes highlightPulse {
+            0% { background: #ffff00; }
+            50% { background: #ffff99; }
+            100% { background: #ffff00; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+            }
+            
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .keyboard-hint {
+                display: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="theme-default">
+    <div class="container">
+        <h1>🌟 Universal Reading Assistant</h1>
+        <p class="tagline">Making digital content accessible for everyone</p>
+        
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="theme">
+                    🎨 Visual Theme
+                </label>
+                <select id="theme" aria-label="Choose visual theme">
+                    <option value="default">Default</option>
+                    <option value="dark">Dark Mode</option>
+                    <option value="contrast">High Contrast</option>
+                    <option value="dyslexia">Dyslexia Friendly</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="fontSize">
+                    📏 Text Size
+                </label>
+                <input type="range" id="fontSize" min="12" max="32" value="16" aria-label="Adjust text size">
+                <span id="fontSizeValue">16px</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="spacing">
+                    ↔️ Line Spacing
+                </label>
+                <input type="range" id="spacing" min="1" max="3" step="0.1" value="1.6" aria-label="Adjust line spacing">
+            </div>
+            
+            <div class="control-group">
+                <label for="speed">
+                    🎚️ Reading Speed
+                </label>
+                <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1" aria-label="Adjust reading speed">
+                <span id="speedValue">1.0x</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="voice">
+                    🗣️ Voice Selection
+                </label>
+                <select id="voice" aria-label="Choose reading voice">
+                    <option>Loading voices...</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="language">
+                    🌐 Language
+                </label>
+                <select id="language" aria-label="Choose language">
+                    <option value="en-US">English (US)</option>
+                    <option value="en-GB">English (UK)</option>
+                    <option value="hi-IN">Hindi</option>
+                    <option value="bn-IN">Bengali</option>
+                    <option value="te-IN">Telugu</option>
+                    <option value="mr-IN">Marathi</option>
+                    <option value="ta-IN">Tamil</option>
+                    <option value="gu-IN">Gujarati</option>
+                    <option value="kn-IN">Kannada</option>
+                    <option value="pa-IN">Punjabi</option>
+                    <option value="ml-IN">Malayalam</option>
+                    <option value="es-ES">Spanish</option>
+                    <option value="fr-FR">French</option>
+                    <option value="de-DE">German</option>
+                    <option value="it-IT">Italian</option>
+                    <option value="pt-BR">Portuguese</option>
+                    <option value="zh-CN">Chinese</option>
+                    <option value="ja-JP">Japanese</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn" id="speakBtn" aria-label="Start reading text">
+                🔊 Read Aloud
+            </button>
+            <button class="btn stop" id="stopBtn" aria-label="Stop reading">
+                ⏹️ Stop
+            </button>
+            <button class="btn" id="simplifyBtn" aria-label="Simplify text">
+                ✨ Simplify Text
+            </button>
+            <button class="btn" id="focusBtn" aria-label="Enter focus mode">
+                🎯 Focus Mode
+            </button>
+            <button class="btn" id="guideBtn" aria-label="Toggle reading guide">
+                📖 Reading Guide
+            </button>
+            <button class="btn" id="translateBtn" aria-label="Translate text">
+                🌍 Quick Translate
+            </button>
+            <button class="btn" id="signLangBtn" aria-label="Text to Sign Language">
+                🤟 Text to Sign Language
+            </button>
+    <div class="focus-mode" id="signLangMode" style="z-index:2100;">
+        <div class="focus-content" id="signLangContent">
+            <button onclick="closeSignLangMode()" style="float: right;">✖️ Close</button>
+            <div id="signLangText"></div>
+        </div>
+    </div>
+        </div>
+        
+        <textarea id="textInput" placeholder="Paste or type your text here... 
+
+This tool helps make reading easier for everyone:
+• Adjust visual themes for comfort
+• Change text size and spacing
+• Listen to text read aloud
+• Simplify complex sentences
+• Use reading guides for tracking
+• Focus mode for distraction-free reading
+
+Try the different features to find what works best for you!" aria-label="Text input area"></textarea>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="wordCount">0</div>
+                <div class="stat-label">Words</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="charCount">0</div>
+                <div class="stat-label">Characters</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="readTime">0</div>
+                <div class="stat-label">Min to Read</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="sentences">0</div>
+                <div class="stat-label">Sentences</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="reading-guide" id="readingGuide"></div>
+    
+    <div class="focus-mode" id="focusMode">
+        <div class="focus-content" id="focusContent">
+            <button onclick="closeFocusMode()" style="float: right;">✖️ Close</button>
+            <div id="focusText"></div>
+        </div>
+    </div>
+    
+    <div class="keyboard-hint">
+        <strong>Keyboard Shortcuts:</strong><br>
+        <kbd>Ctrl</kbd> + <kbd>R</kbd> - Read aloud<br>
+        <kbd>Ctrl</kbd> + <kbd>S</kbd> - Stop reading<br>
+        <kbd>Ctrl</kbd> + <kbd>F</kbd> - Focus mode<br>
+        <kbd>Esc</kbd> - Exit focus mode
+    </div>
+    
+    <script>
+        // Initialize speech synthesis
+        let synth = window.speechSynthesis;
+        let voices = [];
+        let currentUtterance = null;
+        let isReading = false;
+        let readingGuideActive = false;
+        
+        // Load voices
+        function loadVoices() {
+            voices = synth.getVoices();
+            const voiceSelect = document.getElementById('voice');
+            const currentLang = document.getElementById('language').value;
+            voiceSelect.innerHTML = '';
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                if (voice.lang === currentLang) {
+                    option.style.fontWeight = 'bold';
+                }
+                voiceSelect.appendChild(option);
+            });
+        }
+        // Text to Sign Language (simulation)
+        document.getElementById('signLangBtn').addEventListener('click', () => {
+            const text = document.getElementById('textInput').value;
+            if (!text) return;
+            // Simulate sign language translation by showing each word as a sign icon (for demo)
+            const words = text.split(/\s+/).filter(w => w.length > 0);
+            const signHtml = words.map(word => `<span style="font-size:2em; margin:0 5px;">🤟</span> <span style="font-size:1em;">${word}</span>`).join(' ');
+            document.getElementById('signLangText').innerHTML = `<div style="margin-bottom:10px;">(Simulation: Each word shown with a sign icon)</div>${signHtml}`;
+            document.getElementById('signLangMode').classList.add('active');
+        });
+
+        function closeSignLangMode() {
+            document.getElementById('signLangMode').classList.remove('active');
+        }
+        
+        // Load voices when available
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
+        
+        // Theme switcher
+        document.getElementById('theme').addEventListener('change', (e) => {
+            document.body.className = `theme-${e.target.value}`;
+            localStorage.setItem('theme', e.target.value);
+        });
+        
+        // Font size adjuster
+        document.getElementById('fontSize').addEventListener('input', (e) => {
+            const size = e.target.value;
+            document.getElementById('textInput').style.fontSize = `${size}px`;
+            document.getElementById('fontSizeValue').textContent = `${size}px`;
+            localStorage.setItem('fontSize', size);
+        });
+        
+        // Line spacing adjuster
+        document.getElementById('spacing').addEventListener('input', (e) => {
+            document.getElementById('textInput').style.lineHeight = e.target.value;
+            localStorage.setItem('lineSpacing', e.target.value);
+        });
+        
+        // Speed adjuster
+        document.getElementById('speed').addEventListener('input', (e) => {
+            document.getElementById('speedValue').textContent = `${e.target.value}x`;
+        });
+        
+        // Language change
+        document.getElementById('language').addEventListener('change', loadVoices);
+        
+        // Text-to-speech
+        document.getElementById('speakBtn').addEventListener('click', () => {
+            const text = document.getElementById('textInput').value;
+            if (!text) return;
+            
+            if (isReading) {
+                synth.cancel();
+                isReading = false;
+                document.getElementById('speakBtn').classList.remove('active');
+                return;
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voiceSelect = document.getElementById('voice');
+            const selectedVoice = voices[voiceSelect.value];
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            utterance.rate = parseFloat(document.getElementById('speed').value);
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            
+            utterance.onstart = () => {
+                isReading = true;
+                document.getElementById('speakBtn').classList.add('active');
+            };
+            
+            utterance.onend = () => {
+                isReading = false;
+                document.getElementById('speakBtn').classList.remove('active');
+            };
+            
+            utterance.onerror = () => {
+                isReading = false;
+                document.getElementById('speakBtn').classList.remove('active');
+            };
+            
+            currentUtterance = utterance;
+            synth.speak(utterance);
+        });
+        
+        // Stop reading
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            synth.cancel();
+            isReading = false;
+            document.getElementById('speakBtn').classList.remove('active');
+        });
+        
+        // Simplify text
+        document.getElementById('simplifyBtn').addEventListener('click', () => {
+            const text = document.getElementById('textInput').value;
+            if (!text) return;
+            
+            // Simple text simplification
+            let simplified = text
+                .replace(/\b(however|nevertheless|furthermore|moreover)\b/gi, 'but')
+                .replace(/\b(utilize|utilization)\b/gi, 'use')
+                .replace(/\b(commence|initiate)\b/gi, 'start')
+                .replace(/\b(terminate|conclude)\b/gi, 'end')
+                .replace(/\b(demonstrate)\b/gi, 'show')
+                .replace(/\b(assist)\b/gi, 'help')
+                .replace(/\b(purchase)\b/gi, 'buy')
+                .replace(/\b(approximately)\b/gi, 'about')
+                .replace(/\b(sufficient)\b/gi, 'enough');
+            
+            // Split long sentences
+            const sentences = simplified.split(/[.!?]/);
+            const processedSentences = sentences.map(sentence => {
+                if (sentence.split(' ').length > 20) {
+                    // Try to split at conjunctions
+                    return sentence.replace(/, (and|but|or) /g, '.\n$1 ');
+                }
+                return sentence;
+            });
+            
+            simplified = processedSentences.join('. ').replace(/\. +\./g, '.');
+            
+            document.getElementById('textInput').value = simplified;
+            updateStats();
+        });
+        
+        // Focus mode
+        document.getElementById('focusBtn').addEventListener('click', () => {
+            const text = document.getElementById('textInput').value;
+            if (!text) return;
+            
+            document.getElementById('focusText').innerHTML = text
+                .split('\n')
+                .map(p => `<p>${p}</p>`)
+                .join('');
+            document.getElementById('focusMode').classList.add('active');
+        });
+        
+        function closeFocusMode() {
+            document.getElementById('focusMode').classList.remove('active');
+        }
+        
+        // Reading guide
+        document.getElementById('guideBtn').addEventListener('click', () => {
+            readingGuideActive = !readingGuideActive;
+            const guide = document.getElementById('readingGuide');
+            
+            if (readingGuideActive) {
+                guide.classList.add('active');
+                document.getElementById('guideBtn').classList.add('active');
+            } else {
+                guide.classList.remove('active');
+                document.getElementById('guideBtn').classList.remove('active');
+            }
+        });
+        
+        // Track mouse for reading guide
+        document.addEventListener('mousemove', (e) => {
+            if (readingGuideActive) {
+                const guide = document.getElementById('readingGuide');
+                guide.style.top = `${e.clientY - 15}px`;
+            }
+        });
+        
+        // Quick translate (simulation)
+        document.getElementById('translateBtn').addEventListener('click', () => {
+            const text = document.getElementById('textInput').value;
+            const selection = window.getSelection().toString() || text;
+            
+            if (!selection) return;
+            
+            // Simulate translation with a simple message
+            const lang = document.getElementById('language').value;
+            alert(`Translation feature would translate:\n"${selection.substring(0, 100)}${selection.length > 100 ? '...' : ''}"\n\nto ${lang}\n\n(In a real implementation, this would connect to a translation API)`);
+        });
+        
+        // Update statistics
+        function updateStats() {
+            const text = document.getElementById('textInput').value;
+            const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+            const chars = text.length;
+            const sentences = text.split(/[.!?]/).filter(s => s.trim().length > 0);
+            const readTime = Math.ceil(words.length / 200); // Average reading speed
+            
+            document.getElementById('wordCount').textContent = words.length;
+            document.getElementById('charCount').textContent = chars;
+            document.getElementById('readTime').textContent = readTime;
+            document.getElementById('sentences').textContent = sentences.length;
+        }
+        
+        document.getElementById('textInput').addEventListener('input', updateStats);
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        document.getElementById('speakBtn').click();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        document.getElementById('stopBtn').click();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        document.getElementById('focusBtn').click();
+                        break;
+                }
+            } else if (e.key === 'Escape') {
+                closeFocusMode();
+            }
+        });
+        
+        // Load saved preferences
+        window.addEventListener('load', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.getElementById('theme').value = savedTheme;
+                document.body.className = `theme-${savedTheme}`;
+            }
+            
+            const savedFontSize = localStorage.getItem('fontSize');
+            if (savedFontSize) {
+                document.getElementById('fontSize').value = savedFontSize;
+                document.getElementById('textInput').style.fontSize = `${savedFontSize}px`;
+                document.getElementById('fontSizeValue').textContent = `${savedFontSize}px`;
+            }
+            
+            const savedSpacing = localStorage.getItem('lineSpacing');
+            if (savedSpacing) {
+                document.getElementById('spacing').value = savedSpacing;
+                document.getElementById('textInput').style.lineHeight = savedSpacing;
+            }
+            
+            updateStats();
+        });
+        
+        // Ensure focus is visible for keyboard navigation
+        document.querySelectorAll('button, select, input, textarea').forEach(el => {
+            el.addEventListener('focus', () => {
+                el.style.outline = '3px solid #667eea';
+                el.style.outlineOffset = '2px';
+            });
+        });
+    </script>
+</body>
+</html>
